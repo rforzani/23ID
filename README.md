@@ -1,4 +1,4 @@
-# 23ID - Digital Identity & AI Moderation Platform
+# 23ID - Moderation and acceptance for DAOs and WEB3 communities through NFT identities and AI agents
 
 **23ID** is an innovative project for the AGENTIC ETHEREUM hackathon that bridges Web2 and Web3 by unifying digital identities through NFT profiles and enhancing community moderation with AI agents. Our platform empowers DAOs and Web3 communities to make informed decisions based on a comprehensive analysis of user data from both realms.
 

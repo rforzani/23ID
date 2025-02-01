@@ -65,7 +65,7 @@ Our dual AI agents not only moderate Web3 content by analyzing community upvotes
   Solidity smart contracts deployed on the Sepolia testnet.
   
 - **Frontend:**  
-  React & Next.js v15 for a modern, responsive user interface.
+  React & Next.js v15 for a modern, responsive user interface. Significant CSS styling and React components were taken from UIverse
   
 - **Backend:**  
   Node.js server managing API calls and business logic.

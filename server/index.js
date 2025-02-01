@@ -21,6 +21,105 @@ const TWITTER_AUTH_URL = "https://twitter.com/i/oauth2/authorize";
 const TWITTER_TOKEN_URL = "https://api.twitter.com/2/oauth2/token";
 const TWITTER_USER_URL = "https://api.twitter.com/2/users/me";
 
+
+const getTokenIdFromAddressABI = [
+    {
+          "inputs": [
+              {
+                  "internalType": "address",
+                  "name": "user",
+                  "type": "address"
+              }
+          ],
+          "name": "getTokenId",
+          "outputs": [
+              {
+                  "internalType": "uint256",
+                  "name": "tokenId",
+                  "type": "uint256"
+              }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+      }
+];
+
+const getSocialFollowersABI = [
+    {
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "string",
+				"name": "platform",
+				"type": "string"
+			}
+		],
+		"name": "getSocialFollowers",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "followerCount",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+];
+
+const getInterestesABI = [
+    {
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			}
+		],
+		"name": "getVerifiedInterests",
+		"outputs": [
+			{
+				"internalType": "string[]",
+				"name": "interests",
+				"type": "string[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	}
+];
+
+const getReputationCountersABI = [
+    {
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			}
+		],
+		"name": "getReputationCounters",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "upvotes",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "downvotes",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+];
+
 // Step 1: Redirect user to Twitter's authorization page
 app.get('/api/auth/twitter', (req, res) => {
     const params = new URLSearchParams({
@@ -97,6 +196,50 @@ app.get('/api/auth/twitter', (req, res) => {
         console.error('Error during authentication:', error.response?.data || error.message);
         res.status(500).json({ error: 'Authentication failed' });
       }
+});
+
+
+app.post("/signup", async (req, res) => {
+    const db = await getDB();
+    let hash = await bcrypt.hash(req.body.password, 10);
+    await db.collection("users").insertOne({
+        username: req.body.username,
+        email: req.body.email,
+        password: hash
+    });
+    res.json({type: "success", message: "User created successfully"});
+});
+
+app.get("/logout", isUserAuthenticated, (req, res) => {  
+    res.clearCookie("23id_token", { domain: process.env.COOKIE_DOMAIN });
+    res.clearCookie("23id_user", { domain: process.env.COOKIE_DOMAIN });
+    res.json({type: "success", message: "Logout successful"});
+});
+
+app.post("/login", async (req, res) => {
+    if (req.body.username && req.body.password) {
+        const db = await getDB();
+        const user = await db.collection("users").findOne({username: req.body.username});
+
+        if (user) {
+            if (await bcrypt.compare(req.body.password, user.password)) {
+                let accessTokenId = crypto.randomBytes(64).toString("hex");
+                const token = jwt.sign({ user: {username: user.username, email: user.email}, tokenId: accessTokenId }, process.env.JWT_KEY, {
+                    algorithm: "HS256",
+                    expiresIn: parseInt(process.env.JWT_EXPIRY_SECONDS),
+                });
+                res.cookie("23id_token", token, { maxAge: parseInt(process.env.JWT_EXPIRY_SECONDS) * 1000, httpOnly: true, secure: true, domain: process.env.COOKIE_DOMAIN, sameSite: "lax"});
+                res.cookie("23id_user", JSON.stringify({loggedIn: "true"}), { maxAge: parseInt(process.env.JWT_EXPIRY_SECONDS) * 1000, secure: true, domain: process.env.COOKIE_DOMAIN, sameSite: "lax"});
+                res.json({type: "success", message: "Login successful"});
+            } else {
+                res.json({type: "failure", message: "Incorrect username or password"});
+            }
+        } else {
+            res.json({type: "failure", message: "Invalid username or password"});
+        }
+    } else {
+        res.json({type: "failure", message: "Missing username or password"});
+    }
 });
 
 const cleanup = async () => {    

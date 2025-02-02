@@ -10,10 +10,19 @@ contract PlatformRegistry is AccessControl {
         string name;       // e.g., "Decentralized Forum"
         string guidelines; // IPFS hash or URI referencing the platform guidelines
         bool isRegistered;
+        uint256 owner;     // The owner that registered the platform
     }
 
     // Mapping of platform address => PlatformInfo
     mapping(address => PlatformInfo) public registeredPlatforms;
+
+    mapping (address => mapping (address => bool)) public platformRequests;
+
+    mapping (address => mapping (address => bool)) public platformAdmissions;
+    
+    mapping (address => address[]) public platformRequestsList;
+
+    mapping (address => address[]) public platformAdmissionsList;
 
     event PlatformRegistered(
         address indexed platformAddress,
@@ -35,17 +44,54 @@ contract PlatformRegistry is AccessControl {
     function registerPlatform(
         address platformAddress,
         string calldata name,
-        string calldata guidelines
+        string calldata guidelines,
+        uint256 owner
     ) external onlyRole(REGISTRAR_ROLE) {
         require(!registeredPlatforms[platformAddress].isRegistered, "Already registered");
         registeredPlatforms[platformAddress] = PlatformInfo({
             name: name,
             guidelines: guidelines,
-            isRegistered: true
+            isRegistered: true,
+            owner: owner
         });
 
         emit PlatformRegistered(platformAddress, name, guidelines);
     }
+
+    function requestPlatformAdmission(address platformAddress, address requestingAddress) external {
+        require(registeredPlatforms[platformAddress].isRegistered, "Not registered");
+        require(!platformRequests[platformAddress][requestingAddress], "Already requested");
+        require(!platformAdmissions[platformAddress][requestingAddress], "Already admitted");
+        platformRequests[platformAddress][requestingAddress] = true;
+        platformRequestsList[platformAddress].push(requestingAddress);
+    }
+
+    function admitPlatformRequest(address platformAddress, address requestingAddress) external onlyRole(REGISTRAR_ROLE) {
+        require(registeredPlatforms[platformAddress].isRegistered, "Not registered");
+        require(platformRequests[platformAddress][requestingAddress], "Not requested");
+        require(!platformAdmissions[platformAddress][requestingAddress], "Already admitted");
+        platformAdmissions[platformAddress][requestingAddress] = true;
+        platformAdmissionsList[platformAddress].push(requestingAddress);
+    }
+
+    function rejectPlatformRequest(address platformAddress, address requestingAddress) external onlyRole(REGISTRAR_ROLE) {
+        require(registeredPlatforms[platformAddress].isRegistered, "Not registered");
+        require(platformRequests[platformAddress][requestingAddress], "Not requested");
+        require(!platformAdmissions[platformAddress][requestingAddress], "Already admitted");
+        platformRequests[platformAddress][requestingAddress] = false;
+        // Remove from requests list
+        for (uint i = 0; i < platformRequestsList[platformAddress].length; i++) {
+            if (platformRequestsList[platformAddress][i] == requestingAddress) {
+                platformRequestsList[platformAddress][i] = platformRequestsList[platformAddress][platformRequestsList[platformAddress].length - 1];
+                platformRequestsList[platformAddress].pop();
+                break;
+            }
+        }
+    }
+
+    function getPlatformRequests(address platformAddress) external view returns (address[] memory) {
+        return platformRequestsList[platformAddress];
+    }   
 
     /**
      * @dev Get platform guidelines by address.

@@ -12,6 +12,7 @@ import "./node_modules/@openzeppelin/contracts/utils/Strings.sol";
 interface IPlatformRegistry {
     function isPlatformRegistered(address platformAddress) external view returns (bool);
     function getGuidelines(address platformAddress) external view returns (string memory);
+    function requestPlatformAdmission(address platformAddress, address requestingAddress) external;
 }
 
 /**
@@ -359,6 +360,12 @@ contract DigitalIdentityNFT is ERC721, AccessControl {
         }
 
         emit PostUpvoted(tokenId, msg.sender, ipfsHash);
+    }
+
+    function requestPlatformAdmission(uint256 tokenId, address platform) external {
+        _requireMinted(tokenId);
+        require(_addressToTokenMap[msg.sender] == tokenId, "Not allowed to request admission");
+        IPlatformRegistry(platformRegistry).requestPlatformAdmission(platform, msg.sender);
     }
 
     /**

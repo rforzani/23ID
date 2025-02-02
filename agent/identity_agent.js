@@ -16,6 +16,53 @@ let smartContractAddr = "0x86f61860ABfFb95d0f36707256B2a6A2CE4D7251";
 
 let platformRegistryAddr = "0x0fAFbF24fD54071683954687CD6AfEF532EB4089";
 
+const addInterestAbi = [
+  {
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "string",
+				"name": "interest",
+				"type": "string"
+			}
+		],
+		"name": "addVerifiedInterest",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+];
+
+const updateFollowersABI = [
+  {
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "string",
+				"name": "platform",
+				"type": "string"
+			},
+			{
+				"internalType": "uint256",
+				"name": "followerCount",
+				"type": "uint256"
+			}
+		],
+		"name": "updateSocialFollowers",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	}
+];
+
 const getTokenIdFromAddressABI = [
   {
 		"inputs": [
@@ -81,6 +128,13 @@ const linkWalletABI = [
 	},
 ];
 
+const AnalyzeSocialMediaInput = z
+  .object({
+    username: z.string().describe("The username of the user."),
+  })
+  .strip()
+  .describe("Fetch and analyze social media posts to identify interests.");
+
 const MintEmptyNFTIdentityInput = z
   .object({
     to: z.string().describe("The address to mint the NFT to."),
@@ -95,6 +149,23 @@ const LinkWalletToIdentityInput = z
   })
   .strip()
   .describe("Link a new wallet address to an existing NFT Identity.");
+
+const AddInterestInput = z
+  .object({
+    tokenId: z.string().describe("The NFT token ID representing the user's identity."),
+    interest: z.string().describe("The verified interest to be added."),
+  }) 
+  .strip()
+  .describe("Add a verified interest to the on-chain identity.");
+
+const UpdateFollowersInput = z
+  .object({
+    tokenId: z.string().describe("The NFT token ID representing the user's identity."),
+    platform: z.string().describe("The social media platform."),
+    followerCount: z.number().describe("The follower count."),
+  })
+  .strip()
+  .describe("Update the follower count for a given social media platform.");
 
 // Tool to link a new wallet to an existing NFT identity
 async function linkWalletToIdentity(wallet, args) {
@@ -147,6 +218,92 @@ async function mintEmptyNFTIdentity(wallet, args) {
   }
 }
 
+// Tool to analyze social media posts
+async function analyzeSocialMedia(args) {
+  console.log(`Analyzing social media for user: ${args.username}`);
+
+  try {
+    const db = await getDB();
+    const twitterData = await db.collection("twitter").findOne({ username: args.username });
+    if (!twitterData) {
+      return "None";
+    }
+
+    // Extract interests from social media posts
+    const posts = twitterData.tweets;
+
+    const formattedPosts = posts.map((post) => `POST TEXT: ${post.text}, TIME: ${post.time}\n`).join("");
+
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_KEY });
+    const openaiRes = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are an AI assistant that analyzes user interests from social media posts. Extrapolate up to 5 categories of interest from the following social media posts if possible. Return just the interests separated by commas. An example return answer would be: 'Art, Memes, Technology, Science, Sports'. If no interests are identified return the word 'None'.",
+        },
+        {
+          role: "user",
+          content: formattedPosts,
+        },
+      ],
+    });
+
+    const res = openaiRes.choices[0].message.content?.trim();
+
+    // Return the string result directly
+    return res === "None" || !res ? "None" : res;
+  } catch (err) {
+    console.error(err);
+    return "None";
+  }
+}
+
+
+// Tool to interact with blockchain and add verified interests
+async function addInterestToBlockchain(wallet, args) {
+  const { tokenId, interest } = args;
+  console.log(`Adding interest '${interest}' to token ID: ${tokenId}`);
+
+  try {
+    const contractInvocation = await wallet.invokeContract({
+      contractAddress: smartContractAddr,
+      method: "addVerifiedInterest",
+      args: {tokenId: tokenId, interest: interest},
+      abi: addInterestAbi,
+    });
+
+    await contractInvocation.wait();
+
+    return `Successfully added interest '${interest}' to token ID ${tokenId}.`;
+  } catch (err) {
+    console.error(err);
+    return "Failed to add interest to blockchain due to an error.";
+  }
+}
+
+async function updateSocialFollowers(wallet, args) {
+  const { tokenId, platform, followerCount } = args;
+  console.log(`Updating follower count for platform ${platform} to ${followerCount} for token ID: ${tokenId}`);
+
+  try {
+    const contractInvocation = await wallet.invokeContract({
+      contractAddress: smartContractAddr,
+      method: "updateSocialFollowers",
+      args: {tokenId: tokenId, platform: platform, followerCount: String(followerCount)},
+      abi: updateFollowersABI,
+    });
+
+    await contractInvocation.wait();
+
+    return `Successfully updated follower count for platform ${platform} to ${followerCount} for token ID ${tokenId}.`;
+  } catch (err) {
+    console.error(err);
+    return "Failed to update follower count due to an error.";
+  }
+}
+
 export async function initializeAgent() {
   try {
     // Initialize LLM
@@ -176,8 +333,32 @@ export async function initializeAgent() {
     const cdpToolkit = new CdpToolkit(agentkit);
     const tools = cdpToolkit.getTools();
 
-     // Add mint empty NFT identity tool
-     const mintEmptyNFTIdentityTool = new CdpTool(
+    // Add social media analysis tool
+    const socialMediaTool = new CdpTool(
+      {
+        name: "analyze_social_media",
+        description: "Analyze recent social media posts to identify user interests.",
+        argsSchema: AnalyzeSocialMediaInput,
+        func: analyzeSocialMedia,
+      },
+      agentkit,
+    );
+    tools.push(socialMediaTool);
+
+    // Add blockchain interaction tool
+    const addInterestTool = new CdpTool(
+      {
+        name: "add_interest_to_blockchain",
+        description: "Add a verified interest to the on-chain identity NFT.",
+        argsSchema: AddInterestInput,
+        func: addInterestToBlockchain,
+      },
+      agentkit,
+    );
+    tools.push(addInterestTool);
+
+    // Add mint empty NFT identity tool
+    const mintEmptyNFTIdentityTool = new CdpTool(
       {
         name: "mint_empty_nft_identity",
         description: "Mint an empty NFT identity for a given address.",
@@ -199,6 +380,33 @@ export async function initializeAgent() {
       agentkit,
     );
     tools.push(linkWalletToIdentityTool);
+
+    // Add update followers tool
+    const updateFollowersTool = new CdpTool(
+      {
+        name: "update_followers",
+        description: "Update the follower count for a given social media platform.",
+        argsSchema: UpdateFollowersInput,
+        func: updateSocialFollowers,
+      },
+      agentkit,
+    );
+    tools.push(updateFollowersTool);
+
+    // Store buffered conversation history in memory
+    const memory = new MemorySaver();
+    const agentConfig = {
+      configurable: { thread_id: "Digital Identity and Interest Synchronization" },
+    };
+
+    // Create React Agent
+    const agent = createReactAgent({
+      llm,
+      tools,
+      checkpointSaver: memory,
+      messageModifier:
+        "You are an AI agent that analyzes user interests from social media and updates their on-chain identity NFTs with verified interests.",
+    });
 
     // Save wallet data
     const exportedWallet = await agentkit.exportWallet();

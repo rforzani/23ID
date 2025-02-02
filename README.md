@@ -70,7 +70,7 @@ Our dual AI agents not only moderate Web3 content by analyzing community upvotes
 - **Backend:**  
   Node.js server managing API calls and business logic.
 
-  - **X Scraper:**  
+- **X Scraper:**  
   Must not be used in production environments and it should replaced with offical X apis. This code was implemented for demo purposes only.
   
 - **Development Tools:**  

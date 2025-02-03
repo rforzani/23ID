@@ -1,0 +1,76 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 50px;
+}
+
+.cardsContainer {
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+}
+
+.loader {
+    --dim: 4rem;
+    width: var(--dim);
+    height: var(--dim);
+    border: 7px solid #7225be;
+    border-top-color: transparent;
+    border-bottom-color: transparent;
+    border-radius: 50%;
+    animation: spin_51 1.5s infinite linear;
+  }
+
+  .code-editor {
+    width: 600px;
+    height: 600px;
+    z-index: 200;
+    background-color: #1d1e22;
+    box-shadow: 0px 4px 30px rgba(0, 0, 0, 0.5);
+    border-radius: 8px;
+    padding: 2px;
+  }
+  
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 10px;
+  }
+  
+  .title {
+    font-family: sans-serif;
+    margin-right: 20px;
+    font-weight: 900;
+    font-size: 16px;
+    letter-spacing: 1.57px;
+    color: rgb(158, 27, 224);
+  }
+  
+  .icon {
+    width: 20px;
+    transition: .2s ease;
+  }
+  
+  .icon:hover {
+    cursor: pointer;
+    border-radius: 50px;
+    background-color: #6e7281;
+  }
+  
+  .editor-content {
+    margin: 0 10px 10px;
+    color: white;
+    letter-spacing: 0.6px;
+  }
+  
+  @keyframes spin_51 {
+    from {
+      transform: rotate(0)
+    }
+  
+    to {
+      transform: rotate(360deg)
+    }
+  }

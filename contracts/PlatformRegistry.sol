@@ -35,6 +35,14 @@ contract PlatformRegistry is AccessControl {
         _grantRole(REGISTRAR_ROLE, msg.sender);
     }
 
+    function changeAdmin(address newAdmin) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(newAdmin != address(0), "Invalid admin address");
+        _revokeRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _revokeRole(REGISTRAR_ROLE, msg.sender);
+        _grantRole(DEFAULT_ADMIN_ROLE, newAdmin);
+        _grantRole(REGISTRAR_ROLE, newAdmin);
+    }
+
     /**
      * @dev Register a new social platform.
      * @param platformAddress The contract address or representative address of the platform.

@@ -242,6 +242,139 @@ app.post("/login", async (req, res) => {
     }
 });
 
+app.get("/getUserConnectionStatus", isUserAuthenticated, async (req, res) => {
+    try {
+        let db = await getDB();
+        let user = await db.collection("users").findOne({username: req.user.username});
+
+        let status = {
+            twitter: user.twitterUsername ? true : false,
+            linkedin: user.linkedinUsername ? true : false,
+            hasAWallet: user.hasAWallet ? true : false
+        };
+
+        let walletsNumber = status.hasAWallet ? user.wallets.length : 0;
+        let wallets = status.hasAWallet ? user.wallets : [];
+        let adminWallet = status.hasAWallet ? user.adminWallet : "";
+
+        res.json({type: "success", message: "User connection status retrieved", connectionStatus: status, walletsNumber: walletsNumber, wallets: wallets, adminWallet: adminWallet});
+    } catch (error) {
+        res.json({type: "failure", message: "Error retrieving user connection status"});
+    }
+});
+
+app.post("/validateNewWallet", isUserAuthenticated, async (req, res) => {
+    const { walletAddress, signature, message } = req.body;
+
+    if (!walletAddress || !signature || !message) {
+        res.json({type: "failure", message: "Missing wallet address or signature or message"});
+        return;
+    }
+
+    try {
+        const db = await getDB();
+
+        const recoveredAddress = verifyMessage(message, signature);
+
+        let user = await db.collection("users").findOne({username: req.user.username});
+
+        let tokenId = user.tokenId;
+        let newWallets = user.wallets;
+
+        if (newWallets.includes(walletAddress)) {
+            res.json({type: "failure", message: "This wallet is already linked to your account."});
+            return;
+        }
+        
+        // Check if the recovered address matches the provided wallet address
+        if (recoveredAddress.toLowerCase() === walletAddress.toLowerCase()) {
+            const userMessage = `Link the wallet with address ${walletAddress} to the NFT with token ID ${tokenId}`;
+            let agentRes = await axios.post(process.env.AGENT_DOMAIN + "/api/runAgent", {userMessage});
+            if (agentRes.data.success) {
+                const provider = new JsonRpcProvider("https://sepolia.base.org");
+                const contractAddress = process.env.CONTRACT_ADDRESS;
+
+                const contract = new Contract(contractAddress, getTokenIdFromAddressABI, provider);
+
+                const idCheck = await contract.getTokenId(walletAddress);
+
+                if (parseInt(idCheck) === parseInt(tokenId)) {
+                    newWallets.push(walletAddress);
+                    await db.collection("users").updateOne({username: req.user.username}, {$set: {wallets: newWallets}});
+                    res.json({type: "success", message: agentRes.data.result });
+                } else {
+                    res.json({type: "failure", message: agentRes.data.result });
+                }
+                
+            }
+        } else {
+          return res.status(400).json({
+            type: "error",
+            message: "Signature verification failed. Invalid wallet address.",
+          });
+        }
+    } catch (error) {
+        console.log(error);
+        res.json({type: "failure", message: "Error validating wallet"});
+    }
+});
+
+app.post("/validateFirstWallet", isUserAuthenticated, async (req, res) => {
+    const { walletAddress, signature, message } = req.body;
+
+    if (!walletAddress || !signature || !message) {
+        res.json({type: "failure", message: "Missing wallet address or signature or message"});
+        return;
+    }
+
+    try {
+        const db = await getDB();
+
+        const recoveredAddress = verifyMessage(message, signature);
+        
+        // Check if the recovered address matches the provided wallet address
+        if (recoveredAddress.toLowerCase() === walletAddress.toLowerCase()) {
+            const userMessage = `Create an empty NFT identity for the wallet address ${walletAddress}`;
+            let agentRes = await axios.post(process.env.AGENT_DOMAIN + "/api/runAgent", {userMessage});
+            if (agentRes.data.success) {
+                const provider = new JsonRpcProvider("https://sepolia.base.org");
+                const contractAddress = process.env.CONTRACT_ADDRESS;
+
+                const contract = new Contract(contractAddress, getTokenIdFromAddressABI, provider);
+
+                const tokenId = await contract.getTokenId(walletAddress);
+
+                if (tokenId) {
+                    await db.collection("users").updateOne({username: req.user.username}, {$set: {wallets: [walletAddress], tokenId: tokenId, hasAWallet: true, adminWallet: walletAddress}});
+                    res.json({type: "success", message: agentRes.data.result });
+                } else {
+                    res.json({type: "failure", message: agentRes.data.result });
+                }
+                
+            }
+        } else {
+          return res.status(400).json({
+            type: "error",
+            message: "Signature verification failed. Invalid wallet address.",
+          });
+        }
+    } catch (error) {
+        console.log(error);
+        res.json({type: "failure", message: "Error validating wallet"});
+    }
+});
+
+app.post('/getSyncProgress', isUserAuthenticated, async (req, res) => {
+    if (req.body.type) {
+        let db = await getDB();
+        let syncProgress = await db.collection("syncProgress").findOne({username: req.user.username});
+        let toReturn = syncProgress[req.body.type];
+        res.json({type: "success", progress: toReturn});
+    } else {
+        res.json({type: "failure", message: "Missing type"});
+    }
+});
+
 const cleanup = async () => {    
     process.exit();
 }

@@ -1,0 +1,148 @@
+.loader {
+    --dim: 4rem;
+    width: var(--dim);
+    height: var(--dim);
+    border: 7px solid #7225be;
+    border-top-color: transparent;
+    border-bottom-color: transparent;
+    border-radius: 50%;
+    animation: spin_51 1.5s infinite linear;
+}
+
+.flip-card {
+  background-color: transparent;
+  margin-top: 50px;
+  width: 450px;
+  height: 254px;
+  perspective: 1000px;
+  color: white;
+}
+
+.heading8264 {
+  position: absolute;
+  font-size: 1.35em;
+  top: 0em;
+  left: 1em;
+  font-weight: 600;
+  text-shadow: -0.2px -0.2px 0.2px white, 0.2px -0.2px 0.2px gray,
+    -0.2px 0.2px 0.2px white, 0.2px 0.2px 0.2px gray;
+}
+
+.logo {
+  position: absolute;
+  top: 6.8em;
+  left: 11.7em;
+}
+
+.chip {
+  position: absolute;
+  top: 3.5em;
+  left: 1.5em;
+}
+
+.name {
+  position: absolute;
+  font-weight: 400;
+  font-size: 11.5px;
+  top: 17em;
+  left: 2em;
+  right: 2em;
+  text-align: justify;
+  color: white;
+}
+
+.carouselContainer {
+  /* Restrict to max 800px & center horizontally */
+  width: 800px;
+  margin: 2rem auto 0 auto; 
+  text-align: center; /* center the heading, optional */
+}
+
+.carouselTitle {
+  margin-bottom: 1rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  text-align: left;
+  color: #ffffff; /* adjust as needed */
+}
+
+/* Container that enables horizontal scrolling */
+.carouselWrapper {
+  display: flex;
+  overflow-x: scroll;         /* horizontal scroll */
+  gap: 1rem;                /* spacing between interest boxes */
+  padding-bottom: 1rem;     /* extra bottom padding so scrollbars don't overlap content */
+}
+
+/* Hide scrollbar for Chrome, Safari, and Opera */
+.carouselWrapper::-webkit-scrollbar {
+  display: none;
+}
+
+.interestBox {
+  flex: 0 0 auto;            /* items remain their natural size, no flex shrinking/growing */
+  min-width: 120px;          /* minimum width for each box */
+  padding: 1rem;
+  border-radius: 8px;
+  color: #ffffff;            /* text color */
+  background: linear-gradient(90deg, #7E57C2, #4A148C);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  font-size: 1rem;
+}
+
+.strip {
+  position: absolute;
+  background-color: white;
+  width: 28.1em;
+  height: 2.25em;
+  top: 0;
+  border-radius: 1rem 1rem 0 0;
+}
+
+.flip-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  transition: transform 0.8s;
+  transform-style: preserve-3d;
+}
+
+.flip-card:hover .flip-card-inner {
+  transform: rotateY(180deg);
+}
+
+.flip-card-front,
+.flip-card-back {
+  box-shadow: 0 4px 10px 0 rgba(0, 0, 0, 0.1);
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  border-radius: 1rem;
+}
+
+.flip-card-front {
+  background: linear-gradient(135deg, #6c49dd, #ad54b3, #ab6ae4);
+  border: 1px solid white;
+}
+
+.flip-card-back {
+  background: linear-gradient(135deg, #6c49dd, #ad54b3, #ab6ae4);
+  transform: rotateY(180deg);
+}
+
+
+@keyframes spin_51 {
+  from {
+    transform: rotate(0)
+  }
+
+  to {
+    transform: rotate(360deg)
+  }
+}

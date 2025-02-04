@@ -364,6 +364,54 @@ app.post("/validateFirstWallet", isUserAuthenticated, async (req, res) => {
     }
 });
 
+
+app.get("/getUserProfileInfo", isUserAuthenticated, async (req, res) => {
+    try {
+        let db = await getDB();
+        let user = await db.collection("users").findOne({username: req.user.username});
+        let tokenId = user.tokenId;
+
+        const provider = new JsonRpcProvider("https://sepolia.base.org");
+        const contractAddress = process.env.CONTRACT_ADDRESS;
+
+        let contract = new Contract(contractAddress, getSocialFollowersABI, provider);
+
+        let twitterFollowers = await contract.getSocialFollowers(tokenId, "twitter");
+        twitterFollowers = parseInt(twitterFollowers);
+
+        contract = new Contract(contractAddress, getInterestesABI, provider);
+
+        let verifiedInterests = await contract.getVerifiedInterests(tokenId);
+
+        contract = new Contract(contractAddress, getReputationCountersABI, provider);
+
+        let reputationCounters = await contract.getReputationCounters(tokenId);
+
+        let upvotes = parseInt(reputationCounters[0]);
+        let downvotes = parseInt(reputationCounters[1]);
+
+        let twitterInfo = await db.collection("twitter").findOne({username: user.username});
+
+        let socialNetworks = [];
+        if (twitterInfo) {
+            socialNetworks = [
+                {
+                    name: "Twitter",
+                    username: user.twitterUsername,
+                    followers: twitterFollowers,
+                    joinedDate: twitterInfo.profile.joinedDate,
+                    posts: twitterInfo.tweets,
+                }
+            ];
+        }
+
+        res.json({type: "success", twitterFollowers: twitterFollowers, verifiedInterests: [...new Set(verifiedInterests)], upvotes: upvotes, downvotes: downvotes, connectedWallets: user.wallets ? user.wallets.length : 0, connectedSocials: user.twitterUsername ? 1 : 0, socialNetworks: socialNetworks});
+    } catch {
+        res.json({type: "failure", message: "Error retrieving user profile info"});
+    }
+});
+
+
 app.post('/getSyncProgress', isUserAuthenticated, async (req, res) => {
     if (req.body.type) {
         let db = await getDB();

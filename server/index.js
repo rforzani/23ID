@@ -473,6 +473,162 @@ app.post("/recordRequestToJoin", isUserAuthenticated, async (req, res) => {
     }
 });
 
+app.post("/getProfileInfoFromAddress", isUserAuthenticated, async (req, res) => {
+    if (req.body.address) {
+        const db = await getDB();
+        let wantedUser = await db.collection("users").findOne({wallets: req.body.address});
+        if (wantedUser) {
+            let tokenId = wantedUser.tokenId;
+
+            const provider = new JsonRpcProvider("https://sepolia.base.org");
+            const contractAddress = process.env.CONTRACT_ADDRESS;
+
+            let contract = new Contract(contractAddress, getSocialFollowersABI, provider);
+
+            let twitterFollowers = await contract.getSocialFollowers(tokenId, "twitter");
+            twitterFollowers = parseInt(twitterFollowers);
+
+            contract = new Contract(contractAddress, getInterestesABI, provider);
+
+            let verifiedInterests = await contract.getVerifiedInterests(tokenId);
+
+            contract = new Contract(contractAddress, getReputationCountersABI, provider);
+
+            let reputationCounters = await contract.getReputationCounters(tokenId);
+
+            let upvotes = parseInt(reputationCounters[0]);
+            let downvotes = parseInt(reputationCounters[1]);
+
+            let twitterInfo = await db.collection("twitter").findOne({username: wantedUser.username});
+
+            let socialNetworks = [];
+            if (twitterInfo) {
+                socialNetworks = [
+                    {
+                        name: "Twitter",
+                        username: wantedUser.twitterUsername,
+                        followers: twitterFollowers,
+                        joinedDate: twitterInfo.profile.joinedDate,
+                        posts: twitterInfo.tweets,
+                    }
+                ];
+            }
+            res.json({type: "success", data: {twitterFollowers: twitterFollowers, verifiedInterests: [...new Set(verifiedInterests)], upvotes: upvotes, downvotes: downvotes, connectedWallets: wantedUser.wallets ? wantedUser.wallets.length : 0, connectedSocials: wantedUser.twitterUsername ? 1 : 0, socialNetworks: socialNetworks, address: req.body.address, reputationScore: wantedUser.reputationScore || 0.8}});
+        } else {
+            res.json({type: "failure", message: "No user found with this address"});
+        }
+    } else {
+        res.json({type: "failure", message: "Missing address"});
+    }
+});
+
+app.post("/acceptRequest", isUserAuthenticated, async (req, res) => {
+    const { signingAddress, acceptedAddress, signature, message, communityAddress } = req.body;
+
+    if (!signingAddress || !acceptedAddress || !signature || !message || !communityAddress) {
+        return res.json({ type: "failure", message: "Missing required fields" });
+    }
+
+    try {
+        const recoveredAddress = verifyMessage(message, signature);
+
+        if (recoveredAddress.toLowerCase() !== signingAddress.toLowerCase()) {
+            return res.json({ type: "failure", message: "Signature verification failed" });
+        }
+
+        const db = await getDB();
+        let user = await db.collection("users").findOne({ username: req.user.username });
+
+        if (!user || !user.wallets.includes(signingAddress)) {
+            return res.json({ type: "failure", message: "This wallet is not linked to your account." });
+        }
+
+        let tokenId = user.tokenId;
+        let community = await db.collection("communities").findOne({ address: communityAddress });
+
+        if (!community) {
+            return res.json({ type: "failure", message: "Community not found." });
+        }
+
+        if (community.owner !== tokenId) {
+            return res.json({ type: "failure", message: "You are not the owner of this community." });
+        }
+
+        console.log("Accepted Address:", acceptedAddress); // Debugging
+
+        // Ensure `members` is an array before updating
+        if (!Array.isArray(community.members)) {
+            await db.collection("communities").updateOne(
+                { address: communityAddress },
+                { $set: { members: [] } }
+            );
+        }
+
+        // Normalize acceptedAddress to lowercase
+        const normalizedAcceptedAddress = acceptedAddress.toLowerCase();
+
+        // Check if address is already in the array
+        if (community.members.includes(normalizedAcceptedAddress)) {
+            return res.json({ type: "failure", message: "User is already a member." });
+        }
+
+        // Add the acceptedAddress to the members array
+        const result = await db.collection("communities").updateOne(
+            { address: communityAddress },
+            { $addToSet: { members: normalizedAcceptedAddress } }
+        );
+
+        console.log("Update Result:", result);
+
+        if (result.modifiedCount === 0) {
+            return res.json({ type: "failure", message: "User is already a member or update failed." });
+        }
+
+        // Remove request from platformRequests
+        await db.collection("platformRequests").updateOne(
+            { address: acceptedAddress },
+            { $pull: { platforms: communityAddress } }
+        );
+
+        res.json({ type: "success", message: "Request accepted successfully" });
+    } catch (error) {
+        console.error("Error:", error);
+        res.json({ type: "failure", message: "Error accepting request" });
+    }
+});
+
+app.get("/getOwnedCommunities", isUserAuthenticated, async (req, res) => {
+    try {
+        const db = await getDB();
+
+        // Fetch the user (adjust your collection/field names as necessary)
+        const user = await db.collection("users").findOne({ username: req.user.username });
+        
+        // Get communities owned by the user
+        const communities = await db.collection("communities")
+            .find({ owner: user.tokenId })
+            .project({ title: 1, description: 1, guidelines: 1, members: 1, address: 1 })
+            .toArray();
+        
+        // For each community, find requests in platformRequests whose platforms array contains this community's address
+        for (let community of communities) {
+            const requests = await db.collection("platformRequests")
+                // Changed the query to directly match the address in platforms
+                .find({ platforms: community.address })
+                .project({ address: 1, _id: 0 })
+                .toArray();
+            
+            // Extract the address field for each matching request
+            community.requests = requests.map(r => r.address);
+        }
+        
+        res.json({ type: "success", communities });
+    } catch (err) {
+        console.error(err);
+        res.json({ type: "failure", message: "Error fetching communities" });
+    }
+});
+
 app.post("/createCommunity", isUserAuthenticated, async (req, res) => {
     const { walletAddress, signature, message, title, description, guidelines, contractAddress } = req.body;
 

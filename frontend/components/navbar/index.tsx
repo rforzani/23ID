@@ -52,7 +52,7 @@ export default function Navbar() {
                         <div className={styles.plainBtn} onClick={() => router.push("/registerCommunity")}>
                             Register Community
                         </div>
-                        <div className={styles.plainBtn} onClick={() => router.push("/ownedCommunties")}>
+                        <div className={styles.plainBtn} onClick={() => router.push("/ownedCommunities")}>
                             Manage Owned Communities
                         </div>
                     </>

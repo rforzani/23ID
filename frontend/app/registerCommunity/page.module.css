@@ -1,0 +1,181 @@
+/* Container with centered layout and padding */
+.registerCommunityContainer {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+
+/* A purple-based header with a gradient text trick:
+   NOTE: set the background color to the gradient, clip it to the text,
+   then set fill-color to transparent, so it shows the gradient. */
+.header {
+  background-color: #7e57c2; /* fallback color if gradient not supported */
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-align: center;
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 16px; /* slightly smaller margin now that we have a new paragraph */
+}
+
+/* The new white description under the title */
+.description {
+  color: #ffffff;
+  text-align: center;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  margin-bottom: 24px;
+  padding: 0 10px;
+}
+
+/* The form container with a subtle background/card style */
+.form {
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Label styling */
+.label {
+  display: flex;
+  flex-direction: column;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: #ffffff;
+}
+
+/* Basic input & textarea styling */
+.input,
+.textarea {
+  margin-top: 6px;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 1rem;
+  font-family: sans-serif;
+}
+
+.input:focus,
+.textarea:focus {
+  outline: none;
+  border: 1px solid #7e57c2; /* highlight border on focus */
+}
+
+/* Textarea grows to a reasonable height */
+.textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+/* Button with a purple accent */
+.submitButton {
+  background-color: #7e57c2;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.submitButton:hover {
+  background-color: #6b49ab;
+}
+
+.loader {
+  --dim: 4rem;
+  width: var(--dim);
+  height: var(--dim);
+  border: 7px solid #7225be;
+  border-top-color: transparent;
+  border-bottom-color: transparent;
+  border-radius: 50%;
+  animation: spin_51 1.5s infinite linear;
+}
+
+/* AI Agent Success Message Styling (Purple-themed) */
+.aiMessageContainer {
+  margin-top: 30px;
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  background: rgba(255, 255, 255, 0.05); /* Subtle, semi-transparent white overlay */
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  padding: 15px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.aiAgentImage {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 2px solid #7e57c2; /* Purple border for image */
+}
+
+/* The bubble with a white background for good contrast */
+.aiMessageBubble {
+  flex: 1;
+  background: #fff;
+  padding: 10px 15px;
+  border-radius: 10px;
+  position: relative;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.aiMessageBubble::after {
+  content: "";
+  position: absolute;
+  bottom: 100%;
+  left: 20px;
+  border-width: 10px;
+  border-style: solid;
+  border-color: transparent transparent #fff transparent;
+}
+
+.aiMessageBubble h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #333;
+}
+
+.aiMessageBubble p {
+  margin: 10px 0;
+  font-size: 1rem;
+  color: #555;
+}
+
+/* Use a purple accent for the dismiss button to match overall theme */
+.dismissButton {
+  background: #7e57c2;
+  color: #fff;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  margin-top: 10px;
+}
+
+.dismissButton:hover {
+  background: #6b49ab;
+}
+
+
+@keyframes spin_51 {
+  from {
+    transform: rotate(0)
+  }
+
+  to {
+    transform: rotate(360deg)
+  }
+}

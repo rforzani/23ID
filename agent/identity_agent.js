@@ -12,9 +12,9 @@ import OpenAI from "openai";
 // File to persist the wallet data
 const WALLET_DATA_FILE = "agent_wallet.txt";
 
-let smartContractAddr = "0x86f61860ABfFb95d0f36707256B2a6A2CE4D7251";
+let smartContractAddr = "0x429140243a46c63214547F46e5a03f857bE56700";
 
-let platformRegistryAddr = "0x0fAFbF24fD54071683954687CD6AfEF532EB4089";
+let platformRegistryAddr = "0x98f5b06E8671051887A8FeB32306C7aa6567b56D";
 
 const addInterestAbi = [
   {
@@ -128,6 +128,37 @@ const linkWalletABI = [
 	},
 ];
 
+const addCommunityABI = [
+  {
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "platformAddress",
+				"type": "address"
+			},
+			{
+				"internalType": "string",
+				"name": "name",
+				"type": "string"
+			},
+			{
+				"internalType": "string",
+				"name": "guidelines",
+				"type": "string"
+			},
+			{
+				"internalType": "uint256",
+				"name": "owner",
+				"type": "uint256"
+			}
+		],
+		"name": "registerPlatform",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	}
+];
+
 const AnalyzeSocialMediaInput = z
   .object({
     username: z.string().describe("The username of the user."),
@@ -166,6 +197,16 @@ const UpdateFollowersInput = z
   })
   .strip()
   .describe("Update the follower count for a given social media platform.");
+
+const RegisterCommunityInput = z
+  .object({
+    platformAddress: z.string().describe("The address of the platform."),
+    name: z.string().describe("The name of the platform."),
+    guidelines: z.string().describe("The guidelines of the platform."),
+    owner: z.string().describe("The token id owner of the platform."),
+  })
+  .strip()
+  .describe("Register a new community platform.");
 
 // Tool to link a new wallet to an existing NFT identity
 async function linkWalletToIdentity(wallet, args) {
@@ -304,6 +345,27 @@ async function updateSocialFollowers(wallet, args) {
   }
 }
 
+async function registerCommunity(wallet, args) {
+  const { platformAddress, name, guidelines, owner } = args;
+  console.log(`Registering community platform ${name} with address ${platformAddress}`);
+
+  try {
+    const contractInvocation = await wallet.invokeContract({
+      contractAddress: platformRegistryAddr,
+      method: "registerPlatform",
+      args: { platformAddress: platformAddress, name: name, guidelines: guidelines, owner: owner },
+      abi: addCommunityABI,
+    });
+
+    await contractInvocation.wait();
+
+    return `Successfully registered community platform ${name} with address ${platformAddress}.`;
+  } catch (err) {
+    console.error(err);
+    return "Failed to register community platform due to an error.";
+  }
+}
+
 export async function initializeAgent() {
   try {
     // Initialize LLM
@@ -392,6 +454,18 @@ export async function initializeAgent() {
       agentkit,
     );
     tools.push(updateFollowersTool);
+
+    // Add register community tool
+    const registerCommunityTool = new CdpTool(
+      {
+        name: "register_community",
+        description: "Register a new community platform.",
+        argsSchema: RegisterCommunityInput,
+        func: registerCommunity,
+      },
+      agentkit,
+    );
+    tools.push(registerCommunityTool);
 
     // Store buffered conversation history in memory
     const memory = new MemorySaver();

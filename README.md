@@ -75,3 +75,4 @@ Our dual AI agents not only moderate Web3 content by analyzing community upvotes
   
 - **Development Tools:**  
   Coinbase AgentKit for seamless blockchain integration.
+  Coinbase Wallet API to manage user and platform wallets.

@@ -1,0 +1,144 @@
+.communitiesPage {
+  padding: 2rem;
+}
+
+.pageTitle {
+  text-align: center;
+  margin-bottom: 2rem;
+  font-size: 2rem;
+}
+
+/* Layout: Horizontal flexbox with wrap */
+.communitiesGrid {
+  display: flex;
+  flex-wrap: wrap; /* Allows wrapping */
+  gap: 2rem;       /* Space between cards */
+  justify-content: center;
+}
+
+/* Stylish card styling */
+.communityCard {
+  background: rgba(25, 25, 25, 0.9);
+  width: 320px; /* Each card has a consistent width */
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 0 12px rgba(120, 0, 255, 0.5);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
+}
+
+.communityCard:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 0 20px rgba(175, 0, 255, 0.7);
+}
+
+.communityCard h2 {
+  margin-bottom: 0.5rem;
+  color: #d4c0ff;
+}
+
+.description,
+.guidelines {
+  margin-bottom: 1rem;
+  color: #bbb;
+}
+
+/* Purple gradient button with hover effects */
+.joinButton {
+  cursor: pointer;
+  background: linear-gradient(90deg, #6a00ff, #9b00ff);
+  border: none;
+  color: #fff;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  border-radius: 8px;
+  transition: transform 0.2s ease, box-shadow 0.3s ease-in-out;
+  box-shadow: 0 4px 12px rgba(155, 0, 255, 0.5);
+  font-weight: bold;
+  letter-spacing: 0.5px;
+}
+
+.joinButton:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 18px rgba(155, 0, 255, 0.8);
+}
+
+.joinButton:active {
+  transform: scale(0.98);
+  box-shadow: 0 3px 10px rgba(155, 0, 255, 0.6);
+}
+
+.description {
+  color: #ffffff;
+  text-align: center;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  margin-bottom: 24px;
+  padding: 0 10px;
+}
+
+.header {
+  background-color: #7e57c2; /* fallback color if gradient not supported */
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-align: center;
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-top: 30px;
+  margin-bottom: 16px; /* slightly smaller margin now that we have a new paragraph */
+}
+
+/* NEW: Connect Wallet Button */
+.connectWalletButton {
+  cursor: pointer;
+  background: linear-gradient(90deg, #6a00ff, #9b00ff);
+  border: none;
+  color: #fff;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  border-radius: 8px;
+  transition: transform 0.2s ease, box-shadow 0.3s ease-in-out;
+  box-shadow: 0 4px 12px rgba(155, 0, 255, 0.5);
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  margin: 20px auto;
+  display: block;
+}
+.connectWalletButton:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 18px rgba(155, 0, 255, 0.8);
+}
+.connectWalletButton:active {
+  transform: scale(0.98);
+  box-shadow: 0 3px 10px rgba(155, 0, 255, 0.6);
+}
+
+/* NEW: Connected Wallet Info Text */
+.connectedWalletInfo {
+  color: #fff;
+  text-align: center;
+  font-size: 1rem;
+  margin-bottom: 20px;
+}
+
+.txPending {
+  color: orange;
+  font-weight: bold;
+  text-align: center;
+  margin-top: 10px;
+}
+
+.txSuccess {
+  color: green;
+  font-weight: bold;
+  text-align: center;
+  margin-top: 10px;
+}
+
+.txError {
+  color: red;
+  font-weight: bold;
+  text-align: center;
+  margin-top: 10px;
+}

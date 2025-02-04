@@ -411,6 +411,110 @@ app.get("/getUserProfileInfo", isUserAuthenticated, async (req, res) => {
     }
 });
 
+app.get("/getAllCommunities", isUserAuthenticated, async (req, res) => {
+    try {
+        const db = await getDB();
+        let user = await db.collection("users").findOne({username: req.user.username});
+        let communities = await db.collection("communities").find().project({title: 1, description: 1, guidelines: 1, members: 1, address: 1}).toArray();
+
+        res.json({type: "success", communities: communities, tokenId: user.tokenId});
+    } catch (err) {
+        console.log(err);
+        res.json({type: "failure", message: "Error fetching communities"});
+    }
+});
+
+app.post("/getPendingRequests", isUserAuthenticated, async (req, res) => {
+    try {
+        const db = await getDB();
+
+        let requests = await db.collection("platformRequests").findOne({address: req.body.address});
+
+        res.json({type: "success", pendingRequests: requests ? requests.platforms : []});
+    } catch (err) {
+        console.log(err);
+        res.json({type: "failure", message: "Could not get pending requests"});
+    }
+});
+
+app.post("/recordRequestToJoin", isUserAuthenticated, async (req, res) => {
+    try {
+        const db = await getDB();
+        const { address, platform } = req.body;
+
+        if (!address || !platform) {
+            return res.status(400).json({ type: "failure", message: "Missing address or platform" });
+        }
+
+        const collection = db.collection("platformRequests");
+
+        // Check if the document exists
+        const existingDoc = await collection.findOne({ address });
+
+        if (existingDoc) {
+            // If document exists, push the new platform to the platforms array if it doesn't exist already
+            await collection.updateOne(
+                { address },
+                { $addToSet: { platforms: platform } } // Ensures platform is only added if not already in the array
+            );
+        } else {
+            // If document does not exist, create a new one
+            await collection.insertOne({
+                address,
+                platforms: [platform] // Initialize array with the given platform
+            });
+        }
+
+        res.json({ type: "success", message: "Request recorded successfully" });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ type: "failure", message: "Error recording request" });
+    }
+});
+
+app.post("/createCommunity", isUserAuthenticated, async (req, res) => {
+    const { walletAddress, signature, message, title, description, guidelines, contractAddress } = req.body;
+
+    if (!walletAddress || !signature || !message || !title || !description || !guidelines || !contractAddress) {
+        res.json({type: "failure", message: "Missing wallet address or signature or message or title or description or guidelines or contract address"});
+        return;
+    }
+
+    try {
+        const db = await getDB();
+
+        const recoveredAddress = verifyMessage(message, signature);
+
+        if (recoveredAddress.toLowerCase() === walletAddress.toLowerCase()) {
+            let user = await db.collection("users").findOne({username: req.user.username});
+
+            let userAddresses = user.wallets;
+
+            if (!userAddresses.includes(walletAddress)) {
+                res.json({type: "failure", message: "This wallet is not linked to your account."});
+                return;
+            }
+
+            let tokenId = user.tokenId;
+
+            let agentRes = await axios.post(process.env.AGENT_DOMAIN + "/api/runAgent", {userMessage: `Create a new community with name '${title}', owner '${tokenId}', contract address '${contractAddress}' and guidelines '${guidelines}'`});
+
+            if (agentRes.data.success) {
+                await db.collection("communities").insertOne({title: title, description: description, guidelines: guidelines, owner: tokenId, members: [], address: contractAddress});
+                res.json({type: "success", message: agentRes.data.result});
+            } else {
+                res.json({type: "failure", message: "Error creating community"});
+            }
+        } else {
+            res.json({type: "failure", message: "Signature verification failed. Invalid wallet address."});
+        }
+    } catch (error) {
+        console.log(error);
+        res.json({type: "failure", message: "Error creating community"});
+    }
+});
+
 
 app.post('/getSyncProgress', isUserAuthenticated, async (req, res) => {
     if (req.body.type) {

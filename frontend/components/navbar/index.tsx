@@ -45,8 +45,15 @@ export default function Navbar() {
                         <div className={styles.plainBtn} onClick={() => router.push("/add")}>
                             Add to my Identity
                         </div>
-                        <div className={styles.plainBtn} onClick={() => router.push("/settings")}>
-                            Settings
+                        <div className={styles.plainBtn} onClick={() => router.push("/viewCommunities")}>
+                            View Communities
+                        </div>
+                        <div style={{marginLeft: 80}}></div>
+                        <div className={styles.plainBtn} onClick={() => router.push("/registerCommunity")}>
+                            Register Community
+                        </div>
+                        <div className={styles.plainBtn} onClick={() => router.push("/ownedCommunties")}>
+                            Manage Owned Communities
                         </div>
                     </>
                 }

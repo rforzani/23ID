@@ -8,7 +8,7 @@ import * as fs from "fs";
 import { z } from "zod";
 import { getDB } from "./database/mongodbManager.js";
 import OpenAI from "openai";
-import { addInterestAbi, addCommunityABI, linkWalletABI, mintABI, updateFollowersABI, getTokenIdFromAddressABI } from "./abis.js";  
+import { addInterestAbi, addCommunityABI, linkWalletABI, mintABI, updateFollowersABI, getTokenIdFromAddressABI, upvotePostABI } from "./abis.js";  
 
 // File to persist the wallet data
 const WALLET_DATA_FILE = "agent_wallet.txt";
@@ -65,6 +65,37 @@ const RegisterCommunityInput = z
   })
   .strip()
   .describe("Register a new community platform.");
+
+const upvotePostInput = z 
+  .object({
+    tokenId: z.string().describe("The NFT token ID representing the user's identity."),
+    platform: z.string().describe("The web3 platform the post belongs to."),
+    ipfsHash: z.string().describe("The ipfs hash if the post."),
+  })
+  .strip()
+  .describe("Upvote a post on a web3 community platform.");
+
+// Tool to upvote a post on a web3 community platform
+async function upvotePost(wallet, args) {
+  const { tokenId, platform, ipfsHash } = args;
+  console.log(`Upvoting post ${ipfsHash} on platform ${platform} for user with token ID: ${tokenId}`);
+
+  try {
+    const contractInvocation = await wallet.invokeContract({
+      contractAddress: smartContractAddr,
+      method: "upvotePost",
+      args: {tokenId: tokenId, platform: platform, ipfsHash: ipfsHash},
+      abi: upvotePostABI,
+    });
+
+    await contractInvocation.wait();
+
+    return `Successfully upvoted post ${ipfsHash} on platform ${platform} for token ID ${tokenId}.`;
+  } catch (err) {
+    console.error(err);
+    return "Failed to upvote post due to an error.";
+  }
+}
 
 // Tool to link a new wallet to an existing NFT identity
 async function linkWalletToIdentity(wallet, args) {
@@ -324,6 +355,18 @@ export async function initializeAgent() {
       agentkit,
     );
     tools.push(registerCommunityTool);
+
+    // Add upvote post tool
+    const upvotePostTool = new CdpTool(
+      {
+        name: "upvote_post",
+        description: "Upvote a post on a web3 community platform.",
+        argsSchema: upvotePostInput,
+        func: upvotePost,
+      },
+      agentkit,
+    );
+    tools.push(upvotePostTool);
 
     // Store buffered conversation history in memory
     const memory = new MemorySaver();
